@@ -8,7 +8,7 @@ This Lambda will Pull propagated routes from TGW and update VPC route table
     #### 2- Make sure your Lambda Role has permissions to describe/create routes in TGW/VPC and able to create/read from S3 bucket.
     #### 3- This code will only update VPC that belong to same account as of TGW. No cross account support. But feel free to modify the code as per your req.
     #### 4- Populate Variables In below section according to your resource ID's
-
+    #### 5- Customer can use it as cloudwatch cronjob or manually run it when they need to synch up TGW and VPC route tables
 
 
     ##########################################VARIABLE SECTION, PLEASE POPULATE AS PER YOUR RESOURCE ID'S################
