@@ -21,8 +21,8 @@ def lambda_handler(event, context):
 
 
     #Update TGW ID/TGW REGION
-    tgwid='tgw-0532154ce5738c1d7'
-    tgwregion='eu-west-1'
+    tgwid='tgw-0532154ce5738cxxxx'
+    tgwregion='xxxx'
 
 
 
