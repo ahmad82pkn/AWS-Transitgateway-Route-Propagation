@@ -20,11 +20,10 @@ def lambda_handler(event, context):
 
 
 
-    #Update TGW ID/TGW REGION/BUCKETNAME  ( If bucket doesnt exist, code will create one )
-
-    tgwid='tgw-0532154ce5738cxxxxx'
+    #Update TGW ID/TGW REGION
+    tgwid='tgw-0532154ce5738c1d7'
     tgwregion='eu-west-1'
-    bucketname=tgwid+'route-prop'
+
 
 
     # Populate this list with comma separated VPC ID for which you dont want Route propagator to take any action
@@ -42,7 +41,7 @@ def lambda_handler(event, context):
         s3 = boto3.resource(service_name = 's3', region_name=tgwregion)
         try:
 
-            s3.meta.client.download_file(Bucket=bucketname,Key='file.txt',Filename ='/tmp/file.txt')
+            s3.meta.client.download_file(Bucket=tgwid+'-route-prop',Key='file.txt',Filename ='/tmp/file.txt')
             with open("/tmp/file.txt","r") as readnow:
                 for line in readnow:
                     tgwroutes_in_s3.append(line.rstrip())
@@ -54,10 +53,10 @@ def lambda_handler(event, context):
 
                 print("Creatingbucket")
                 if tgwregion=='us-east-1':
-                    s3.create_bucket(Bucket=bucketname)
+                    s3.create_bucket(Bucket=tgwid+'-route-prop')
                 else:
-                    s3.create_bucket(Bucket=bucketname, CreateBucketConfiguration={'LocationConstraint': tgwregion})
-                bucket_versioning = s3.BucketVersioning(bucketname)
+                    s3.create_bucket(Bucket=tgwid+'-route-prop', CreateBucketConfiguration={'LocationConstraint': tgwregion})
+                bucket_versioning = s3.BucketVersioning(tgwid+'-route-prop')
                 bucket_versioning.enable()
             else:
                 print("S3 Timedout. Aborting")
@@ -71,7 +70,7 @@ def lambda_handler(event, context):
             for x in mylist:
                 output.write(x+"\n")
 
-        s3.meta.client.upload_file(Filename ='/tmp/file.txt',Bucket=bucketname,Key='file.txt')
+        s3.meta.client.upload_file(Filename ='/tmp/file.txt',Bucket=tgwid+'-route-prop',Key='file.txt')
 
     # Find VPC RTB that has a route conflicting with TGW RTB( already present in TGW ) You need to remove conflicting route from VPC RTB pointing to next hop other than TGW, so that script can push TGW route to VPC RTB pointing to TGW as next hop
     def find_rtb_of_conflicting_route(route,rtblist):
