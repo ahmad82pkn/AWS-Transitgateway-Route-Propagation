@@ -21,8 +21,8 @@ def lambda_handler(event, context):
 
 
     #Update TGW ID/TGW REGION
-    tgwid='tgw-0532154ce5738cxxxx'
-    tgwregion='xxxx'
+    tgwid='tgw-0xxxxxxxx'
+    tgwregion='xx-xxxx-1'
 
 
 
@@ -32,6 +32,43 @@ def lambda_handler(event, context):
 
 
     ##########################################CODE START HERE##############################################################
+    #Check if VPC route table are reaching route table entries per vpc
+    def check_vpc_route_table_enteries_quota(tgw_new_route_count,rtblist):
+        ec2client = boto3.client('service-quotas',region_name=tgwregion)
+
+        response = ec2client.list_service_quotas(
+        ServiceCode='vpc'
+        )
+        for i in response['Quotas']:
+            if i['QuotaName']=="Routes per route table":
+                vpc_rtb_quota=i['Value']
+
+        
+        largest_route_table_count=0
+        tgwclient = boto3.client('ec2',region_name=tgwregion)
+        for rtb in rtblist:
+            response = tgwclient.describe_route_tables(
+                RouteTableIds=[
+                 rtb,
+             ],
+                )
+
+            current_rtb_route_count=0
+
+            for i in response['RouteTables'][0]['Routes']:
+                if i['Origin']=='CreateRoute':
+                    current_rtb_route_count=current_rtb_route_count+1
+            if current_rtb_route_count>largest_route_table_count:
+                largest_route_table_count=current_rtb_route_count
+                rtb_with_quota_issue=rtb
+        
+        available_capacity=vpc_rtb_quota-largest_route_table_count
+
+        if available_capacity<tgw_new_route_count:
+            print("Number of available route entries quota in VPC RTB " + rtb_with_quota_issue + "is less than additional new TGW routes. Cant create route in VPC RTB rtb_with_quota_issue, please increase capacity ! Aborting")
+            exit()
+        
+        
 
 
     #Get list of routes from S3
@@ -187,6 +224,7 @@ def lambda_handler(event, context):
                 
 
     print("TGW ROUTES ",ListOfAllTgwRoutes)
+    tgw_route_count=len(ListOfAllTgwRoutes)
 
 
 
@@ -257,12 +295,20 @@ def lambda_handler(event, context):
     tgw_routes_from_s3_copy=[]
     update=False
 
-#    # Grab TGW routes from last saved copy in S3
-    
-#    tgw_routes_from_s3=get_list_of_routes_from_s3()
-    
 
 
+    # Grab TGW routes from last saved copy in S3
+    tgw_routes_from_s3=get_list_of_routes_from_s3()
+    tgw_route_count_from_s3=len(tgw_routes_from_s3)
+    # Create copy of TGW routes pulled from S3
+    tgw_routes_from_s3_copy=tgw_routes_from_s3[:]
+
+    new_tgw_route_to_add_in_vpc=tgw_route_count-tgw_route_count_from_s3
+    
+    #Check if VPC route table are reaching route table entries per vpc
+    check_vpc_route_table_enteries_quota(new_tgw_route_to_add_in_vpc,ListOfVpcRtb)
+    
+    
     # This function will check if TGW routes conflict with any existing static VPC route. If a conflict found Code will exit
 
     conflict_list = [element for element in staticrouteinvpc if element in ListOfAllTgwRoutes]
@@ -272,14 +318,6 @@ def lambda_handler(event, context):
         print("Conflicting route present  in VPCRTB  and TGWRTB. Please delete this route from VPC RTB and run the code again ",conflict_list)
         find_rtb_of_conflicting_route(conflict_list,ListOfVpcRtb)
         exit()
-        
-    # Grab TGW routes from last saved copy in S3
-    tgw_routes_from_s3=get_list_of_routes_from_s3()
-    
-    # Create copy of TGW routes pulled from S3
-    tgw_routes_from_s3_copy=tgw_routes_from_s3[:]
-
-
 
     # Update any new  TGW routes in VPC Route table + Update s3 list with additional routes and upload to S3
 
