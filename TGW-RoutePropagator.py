@@ -32,7 +32,7 @@ def lambda_handler(event, context):
 
 
     ##########################################CODE START HERE##############################################################
-    #Check if VPC route table are reaching route table entries per vpc
+    #Check if VPC route table are reaching route table entries per vpc quota limit
     def check_vpc_route_table_enteries_quota(tgw_new_route_count,rtblist):
         ec2client = boto3.client('service-quotas',region_name=tgwregion)
 
