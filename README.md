@@ -1,4 +1,7 @@
 # AWS-Transitgateway-Route-Propagation
+
+Transit gateway route propagation.
+
 This Lambda will Pull propagated routes from TGW and update VPC route table.
 
 Tested on python 3.8 Lambda AWS
